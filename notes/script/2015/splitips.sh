@@ -7,8 +7,6 @@
 #	source ./splitips.sh "192.168.2.10 192.168.2.101-105 192.168.2.200" --norepeat
 #	mynewips=$last_split_ips
 #
-#	by chengxuewen, 20130515
-#
 
 #######################################
 last_split_ips=""
