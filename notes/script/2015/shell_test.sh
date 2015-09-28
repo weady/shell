@@ -83,4 +83,4 @@ awk 'NR==FNR{a[$1]=$1"x"$2"x"$3}NR>FNR{b=substr($4,3);c=$3"x"b"x"$6;if(c==a[$3])
 #两个文件中对应列相加
 awk '{for(i=1;i<=NF;i++)a[i]=$i;getline < "b.txt";for (j=1;j<=NF;j++) printf $j+a[j]" ";printf "\n"}' a.txt
 #eg.6-------------------------------------------------------------
-
+seq -s '#' 100 | sed -e 's/[0-9]*//g'
