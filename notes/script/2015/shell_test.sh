@@ -84,3 +84,56 @@ awk 'NR==FNR{a[$1]=$1"x"$2"x"$3}NR>FNR{b=substr($4,3);c=$3"x"b"x"$6;if(c==a[$3])
 awk '{for(i=1;i<=NF;i++)a[i]=$i;getline < "b.txt";for (j=1;j<=NF;j++) printf $j+a[j]" ";printf "\n"}' a.txt
 #eg.6-------------------------------------------------------------
 seq -s '#' 100 | sed -e 's/[0-9]*//g'
+#eg.7-------------------------------------------------------------
+#判断交互输入的是一个数字
+function read_num(){
+	read -p "请输入一个数字:" num
+	if [[ $num =~ ^[0-9]*$ ]];then
+		echo "$num is digital"
+	else 
+		read_num
+	fi
+}
+#read_num
+while :
+do
+	read -p "请输入一个数字:" num
+	n1=`echo $num | sed 's/[0-9]//g'`
+	if [ ! -z $n1 ];then
+		echo "please input a number"
+	else
+		echo "$num is a digital"
+		break
+	fi
+done
+#eg.8-------------------------------------------------------------
+#exec 把执行过程输入到日志文件中
+d=`date +%F`
+exec >/tmp/$d.log 2>&1
+echo "Begin at `date +"%F %T"`"
+ls /tmp/adljfaljdlkfj
+cd /home
+echo "End at `date +"%F %T"`"
+#eg.9-------------------------------------------------------------
+#1至100向加
+for i in `seq 1 100`
+do
+	sum=$[$sum+$i]
+done
+echo $sum
+#9*9 乘法口诀
+for i in `seq 1 9`
+do
+	for j in `seq 1 $i`
+	do
+		k=$[$i*$j]
+		echo -ne "$j x $i = $k\t"
+	done
+	echo
+done
+
+#eg.6-------------------------------------------------------------
+#eg.6-------------------------------------------------------------
+#eg.6-------------------------------------------------------------
+#eg.6-------------------------------------------------------------
+#eg.6-------------------------------------------------------------
