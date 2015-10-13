@@ -9,7 +9,7 @@ zabbix_path="/usr/local/zabbix"
 config_file="zabbix_agentd.conf"
 cmd="$zabbix_path/sbin/zabbix_agentd"
 pids=`ps -ef | grep zabbix_agentd | grep -v grep | awk '{print $2}'`
-
+pid_agent=`ps -ef | grep -E "zabbix_agentd.conf" | grep -v grep | awk '{print $2}'`
 ##start function
 function start(){
 	$cmd -c $zabbix_path/etc/$config_file
@@ -31,7 +31,12 @@ function status(){
 		echo "zabbix_agent stoped"
 	fi
 }
-#
+#reload configure file
+function reload(){
+		kill -HUP $pid_agent
+		[ $? -eq 0 ] && echo "zabbix_agent reload success"
+		
+}
 case $1 in
 	start)
 			start
@@ -46,9 +51,12 @@ case $1 in
 	status)
 		status
 		;;
+	reload)
+		reload
+		;;
 	*)
 		s=${0##*/}
-		echo "Usage: service $s {start|stop|restart|status}"
+		echo "Usage: service $s {start|stop|restart|reload|status}"
 		exit 1
 		;;
 esac
