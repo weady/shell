@@ -70,6 +70,7 @@ END{
 		print letter_grade ":",class_grade[letter_grade] | "sort"
 }
 #eg.5-------------------------------------------------------------
+#利用awk处理两个文件时，原理是找出两个文件的共同列，以这个共同列作为数据的下标，然后把要处理列的值赋予这个数组，然后在另一个文件中进行调用，进而实现对两个文件中列操作
 #File processing command
 #比较 a.txt的1-4字符 和 b.txt的2-5 字符，如果相同，将b.txt 的第二列 与 a.txt 合并 
 awk  'NR==FNR{a[substr($1,2,5)]=$2}NR>FNR&&a[substr($1,1,4)]{print $0, a[substr($1,1,4)] }' b.txt a.txt
@@ -111,3 +112,6 @@ echo $a3
 #eg.11-------------------------------------------------------------
 testfile="/data1/wangdong/shell/a.txt"
 [[ -s "$testfile" ]] && echo "size gt zero" || echo "empty"
+#eg.12-------------------------------------------------------------
+awk 'NR%2==1{next} {print $0}' a.txt
+awk -F':' '{if($NF ~ /bash/) print}' /etc/passwd
