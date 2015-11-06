@@ -122,24 +122,24 @@ function check_ok(){
 	fi
 }
 #contral zabbix_agent
-function contral(){
+function contral_agent(){
 	read -p "Input Agent Ips(eg:192.168.1.1 or 192.168.1.1-100):" ips
-	if [[ "$ips" =~ $rex1 || "$ips" =~ $rex2 ]];then
+	if [[ "$ips" =~ ^$rex1$ || "$ips" =~ ^$rex2$ ]];then
 		f_splitips "$ips"
 		ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
 		read -p "Choise one{status|start|restart|stop}:" command
 		case $command in
 		status)
-			comm
+			agent_comm
 			;;
 		start)
-			comm
+			agent_comm
 			;;	
 		restart)
-			comm
+			agent_comm
 			;;	
 		stop)
-			comm
+			agent_comm
 			;;
 		*)
 			echo "Error"
@@ -150,7 +150,7 @@ function contral(){
 	fi
 }
 #command 
-function comm(){
+function agent_comm(){
 	for ip in ${ip_list}
 	do
 		echo "------------$ip--------------------"
@@ -159,19 +159,20 @@ function comm(){
 }
 #input zabbix_server ip
 function check_ip(){
-        read -p "Server IP(eg:192.168.1.1 or 192.168.1.1-100) :" ip
-        if [[ "$ip" =~ $rex1 || "$ip" =~ $rex2 ]];then
+        read -p "Input Server IP(eg:192.168.1.1 or 192.168.1.1-100) :" ip
+        if [[ "$ip" =~ ^$rex1$ || "$ip" =~ ^$rex2$ ]];then
 		f_splitips "$ip"
                 ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
 	else
-		echo "Ip error"
+		echo "Invalid IP"
+		check_ip
 	fi
 }
 #check soft installed or not
 function check_soft(){
 	check_ip
 }
-function comm01(){
+function deploy(){
 	for list in ${ip_list}
 	do
 		echo "-------------------$list-------------------"
@@ -185,13 +186,13 @@ function Install_soft(){
 	read -p "Choise your want install soft:{php|mysql|apache} :" softname
 	case $softname in
 		php)
-			comm01 "$softname"
+			deploy "$softname"
 		;;
 		mysql)
-			comm01 "$softname"
+			deploy "$softname"
 		;;
 		apache)
-			comm01 "$softname"
+			deploy "$softname"
 		;;
 		*)
 			echo "Usage {php|mysql|apache}"
@@ -200,13 +201,53 @@ function Install_soft(){
 }
 #sync files to some where
 function Sync(){
-	read -p "Input source dst_ip dst(eg: /homed/test 1.1.1.1 /homed):" src dstip dst
-        if [[ "$dstip" =~ $rex1 || "$dstip" =~ $rex2 ]];then
-		rsync $src $dstip:$dst
+	check_ip
+	read -p "Input source dir or files:" src
+	read -p "Input destination dir or files:" dst
+	for ip in ${ip_list} 
+	do
+		echo "-----Sync files to $ip-----"
+		rsync -avz $src $ip:$dst
 		[[ $? -eq 0 ]] && echo "SYNC Success" || echo "SYNC Failed"
-	else
-                echo "Ip error"
-        fi
+        done
+}
+#contral apache 
+function contral_apache(){
+	check_ip
+	echo "-------Choise Option----------"
+	echo " 1:extension ssl mode"
+	echo " 2:start or stop apache"
+	read -p "Your choise:" num
+	case $num in
+	1)
+		exten_ssl_mode
+		;;
+	2)
+		con_apache
+		;;
+	*)
+		echo "Error Choise"
+	esac
+}
+#apache extension ssl mode
+function exten_ssl_mode(){
+	for ip in ${ip_list}
+	do
+		echo "-----Extention SSL Mode for $ip,Please Waiting.....-----"
+		rsync -az $path/soft/httpd-2.2.22.tar.gz $ip:$path
+		rsync -az $path/scripts/ex_ap_ssl.sh $ip:$path
+		ssh $ip "cd $path;./ex_ap_ssl.sh \"$ip\""
+	done 
+}
+#start or stop apache
+function con_apache(){
+	echo "Start or Stop apache:"
+	read -p "Choise command (eg:run or stop):" command
+	for ip in ${ip_list}
+	do
+		echo "--$command apache in $ip--"
+		ssh $ip "source /etc/profile;bash /usr/local/apache/apache_${command}.sh"
+	done
 }
 #Memu
 echo "###################################################"
@@ -216,11 +257,12 @@ echo "#   2: Install PHP Mysql Apache                   #"
 echo "#   3: Install Zabbix Server                      #"
 echo "#   4: Install Zabbix Agent                       #"
 echo "#   5: Contral Zabbix Agent                       #"
-echo "#   6: Synchronous Files                          #"
-echo "#   7: Exit                                       #"
+echo "#   6: Contral Apache                             #"
+echo "#   7: Synchronous Files                          #"
+echo "#   8: Exit                                       #"
 echo "###################################################"
 PS3="请选择一个数字:"
-select input in "Check Soft" "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Synchronous Files" "Exit"
+select input in "Check Soft" "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Contral Apache" "Synchronous Files" "Exit"
 do
 case $input in
 	"Check Soft")
@@ -236,7 +278,10 @@ case $input in
 		ZB_agent
 		;;
 	"Contral Zabbix Agent")
-		contral
+		contral_agent
+		;;
+	"Contral Apache")
+		contral_apache
 		;;
 	"Synchronous Files")
 		Sync
