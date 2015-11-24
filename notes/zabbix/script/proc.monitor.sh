@@ -8,23 +8,28 @@
 
 sum=0
 sum1=0
+sum2=0
 function mem(){
 file=`top -bn 1 |tail -n +8 | awk '{print $6,$NF}' | grep "$1\>"`
 value=`echo "$file" | awk '{print $1}'`
 for val in $value
 do
-	if [[ "$val" =~ m$ ]] || [[ "$val" =~ g$ ]];then
+	if [[ "$val" =~ m$ ]];then
 		num=`echo "$val" | sed 's/[a-z]*//g'`
 		tmp=`echo "$num*1024" | bc`
 		sum=`echo "$sum+$tmp" | bc`
+	elif [[ "$val" =~ g$ ]];then
+		num=`echo "$val" | sed 's/[a-z]*//g'`
+		tmp=`echo "$num*1024*1024" | bc`
+		sum1=`echo "$sum+$tmp" | bc`
 	elif [[ "$val" =~ [0-9]$ ]];then
 		num=`echo "$val" | sed 's/[a-z]*//g'`
-		tmp=`echo "$num*1024" | bc`
-		sum1=`echo "$sum+$tmp" | bc`
+		tmp=`echo "$num" | bc`
+		sum2=`echo "$sum+$tmp" | bc`
 		
 	fi
 done
-echo "$sum +$sum1" | bc
+echo "$sum +$sum1+$sum2" | bc
 }
 
 function cpu(){
