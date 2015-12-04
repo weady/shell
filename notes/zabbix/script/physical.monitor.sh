@@ -5,13 +5,11 @@
 #	by wangdd 2015/11/26
 #
 #
-
+path="/usr/local/zabbix/logs"
 #check raid status
 function raid_status(){
-line=`/opt/MegaRAID/MegaCli/MegaCli64 -cfgdsply -aALL -Nolog| grep -e "DISK GROUP:" -e "Physical Disk:" -e "Firmware state:"`
-tmp=`echo "$line" | awk '/^DISK/{T=$0;next;}{print T":\t"$0;}' | awk -F ':' '$0 ~ /Firmware state/ {print $3,$4;next} {print $0}' | awk '/Physical/ {P=$0;next} {print P,$0}'`
-online=`echo "$tmp" | grep "Online"`
-fail=`echo "$line" | egrep "Failed|Rebuild"`
+online=`cat $path/online.log | grep "Online"`
+fail=`cat $path/fail.log | egrep "Failed|Rebuild"`
 if [ -z "$fail" ];then
 	echo "$online"
 else
@@ -22,16 +20,14 @@ fi
 OK=""
 Error=""
 function P_disk_status(){
-	disk_list=`/opt/MegaRAID/MegaCli/MegaCli64 -PDList -aALL -Nolog| grep "Firmware state" | awk -F'[:,]' '{print $2}' | sed 's/ //g'`
-	for disk_status in $disk_list
-	do
-		num=$[ $num + 1 ]
-		if [ "$disk_status" == "JBOD" -o "$disk_status" == "Online" ];then
-			 OK+="Disk $num is OK |"
-		else
-			Error+=`echo "Disk $num is Error "`
+Error=`cat $path/disk.error.log`
+OK=`cat $path/disk.ok.log`
+		if [ -n "$Error" ];then
+			echo "$Error"
+		else	
+			echo "$OK"
 		fi
-	done
+	
 }
 #main
 case $1 in
@@ -40,11 +36,6 @@ case $1 in
 		;;
 	disk)
 		P_disk_status
-		if [ -n "$Error" ];then
-			echo "$Error"
-		else	
-			echo "$OK"
-		fi
 		;;
 	*)
 		echo "Error Input:"
