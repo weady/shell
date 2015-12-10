@@ -4,12 +4,13 @@
 #	by wangdd 2015/10/30
 #
 
+
 #check env function
 #
-dbip=$1
-username=$2
-password=$3
-z_server=$4
+dbip=`cat /homed/config_comm.xml | grep "mt_db_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
+username="root"
+password="123456"
+z_server=$1
 function check(){
 php_soft="/usr/local/php/bin"
 httpd_proc=`ps -ef | grep httpd | grep -v grep`
@@ -43,23 +44,22 @@ zb_conf="/usr/local/zabbix/etc/zabbix_server.conf"
 }
 #Install server
 function ZB_server(){
+	yum install -y -q --skip-broken gcc mysql-devel net-snmp-devel net-snmp-utils php-gd php-mysqlphp-common php-bcmath php-mbstring php-xml curl-devel iksemel* OpenIPMIOpenIPMI-devel fping libssh2 libssh2-devel unixODBC unixODBC-develmysql-connector-odbc openldap openldap-devel java java-devel
 	mysql_pro=`ps -ef | grep mysql | grep -v grep`
 	if [ -n "$mysql_pro" ];then
-	mysql -u$username -p$password -e "use mysql;delete from user where user='';flush privileges;" 
-	mysql -u$username -p$password -e "create database zabbix character set utf8;grant all on zabbix.* to zabbix@'%' identified by 'zabbixpass';flush privileges;"
+	mysql -u$username -p$password -h$dbip -e "use mysql;delete from user where user='';flush privileges;" 
+	mysql -u$username -p$password -h$dbip -e "GRANT CREATE,DROP,ALTER,INSERT,DELETE,UPDATE,SELECT ON accesslog.* TO zabbix@'%' IDENTIFIED BY 'zabbixpass';"
+	mysql -u$username -p$password -h$dbip -e "create database if not exists zabbix character set utf8;grant all on zabbix.* to zabbix@'%' identified by 'zabbixpass';flush privileges;"
 	[[ $? -eq 0 ]] && echo "Zabbix database create sucess" || clean
 	else
 		echo "mysql not running"
 		clean
 	fi
-	[[ -z `id zabbix` ]] && useradd -s /sbin/nologin zabbix
+	[[ -z `id zabbix` ]] && useradd -s /sbin/nologin zabbix >/dev/null 2>&1
 	cd /usr/local/src/zabbix-2.4.6
-	mysql -uzabbix -pzabbixpass zabbix <./mysql/zabbix_def.sql >/dev/null
+	autoreconf -ivf
+	mysql -uzabbix -pzabbixpass -h$dbip zabbix <./mysql/zabbix_init.sql >/dev/null
 	[[ $? -ne 0 ]] && echo "init zabbix database failed" && clean
-	mysql -uzabbix -pzabbixpass zabbix <./mysql/zabbix.auto.partition.sql >/dev/null
-	#mysql -uzabbix -pzabbixpass zabbix <./mysql/schema.sql >/dev/null
-	#mysql -uzabbix -pzabbixpass zabbix <./mysql/images.sql >/dev/null
-	#mysql -uzabbix -pzabbixpass zabbix <./mysql/data.sql >/dev/null
 	./configure \
 	--prefix=/usr/local/zabbix \
 	--with-mysql \
@@ -76,13 +76,14 @@ function ZB_server(){
 			\cp -a /usr/local/zabbix/scripts/zabbix_agent /etc/init.d/zabbix_agent
 			\cp -a /usr/local/src/zabbix-2.4.6/conf/* /usr/local/zabbix/etc
 			sed -i "s/192.168.36.130/$z_server/" /usr/local/zabbix/etc/zabbix_server.conf
+			sed -i "s/DBHost=127.0.0.1/DBHost=$dbip/" /usr/local/zabbix/etc/zabbix_server.conf
 			sed -i "s/192.168.36.130/$z_server/g" /usr/local/zabbix/etc/zabbix_agentd.conf
 			\cp -a /usr/local/zabbix/etc/agentd/zabbix_agentd.conf.d/userparameter_script.conf /usr/local/zabbix/etc/zabbix_agentd.conf.d
-			mv /usr/local/php/lib/php.ini	/usr/local/php/lib/php.ini.bak
+			mv /usr/local/php/lib/php.ini	/usr/local/php/lib/php.ini.bak >/dev/null 2>&1
 			\cp -a /usr/local/src/zabbix-2.4.6/conf/php.ini	/usr/local/php/lib
 			\cp -a /usr/local/src/zabbix-2.4.6/web/zabbix	/var/www
 			sed -i "s/192.168.36.130/$z_server/" /var/www/zabbix/conf/zabbix.conf.php
-			echo "1 0 * * * /usr/local/zabbix/scripts/auto.partition.sh >/dev/null" >> /var/spool/cron/root 
+			sed -i "s/127.0.0.1/$dbip/" /var/www/zabbix/conf/zabbix.conf.php
 			service zabbix_server start
 			service zabbix_agent start
 		else
@@ -110,12 +111,44 @@ function clean(){
 	rm -f /usr/local/src/server_install.sh
 	exit
 }
+function optimize_mysql(){
+#数据库分区,分区的sql语句在/usr/local/zabbix/scripts/zabbix.partition.sql
+#day--->NOWDAY;nday--->NEXTDAY;ndayt--->NEXTDAYT
+#mon--->NOWMON;nmon--->NEXTMON;nmont--->NEXTMONT
+#
+#
+
+#当前月NOWMON----mon
+#下个月NEXTMON---nmon
+#下个月-:ZZZM----za
+#下下个月-:BBZZ---zb
+#当前日NOWDAY----day
+#下一天NEXTDAY---nday
+#下一天-:ZBBD---zc
+#下下一天-:TZZ---zd
+
+day=`date +%Y%m%d`
+nday=`date +%Y%m%d -d '+1 days'`
+zc=`date +%Y-%m-%d -d '+1 days'`
+zd=`date +%Y-%m-%d -d '+2 days'`
+mon=`date +%Y%m`
+nmon=`date +%Y%m -d '+1 month'`
+za=`date +%Y-%m -d '+1 month'`
+zb=`date +%Y-%m -d '+2 month'`
+tmon=`date +%Y%m -d '+2 month'`
+sed -i "s/NOWDAY/$day/g;s/NEXTDAY/$nday/g;s/ZBBD/$zc/g;s/TZZ/$zd/g" /usr/local/zabbix/scripts/zabbix.partition.sql
+sed -i "s/NOWMON/$mon/g;s/NEXTMON/$nmon/g;s/ZZZM/$za/g;s/BBZZ/$zb/g" /usr/local/zabbix/scripts/zabbix.partition.sql
+mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.partition.sql
+mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.auto.partition.sql
+echo "1 0 * * * /usr/local/zabbix/scripts/auto.partition.sh >/dev/null" >> /var/spool/cron/root 
+}
 #main
 function main(){
 check
 if [ $? -eq 0 ];then
 	ZB_server
 	mailx_install
+	optimize_mysql
 fi
 }
 main
