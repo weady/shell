@@ -83,14 +83,15 @@ function f_splitips(){
 #Install zabbix server
 	
 function ZB_server(){
-        read -p " Zabbix Server Listen IP:" ip
-	read -p " Databae IP:" dbip
-        read -p " Databae user:" username
-        read -p " Databae passwd:" password
+	ip=`cat /homed/config_comm.xml | grep "mt_mainsrv_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
+        #read -p " Zabbix Server Listen IP:" ip
+	#read -p " Databae IP:" dbip
+        #read -p " Databae user:" username
+        #read -p " Databae passwd:" password
         if [[ "$ip" =~ $rex1 ]];then
 		echo "---- Install zabbix_server in $ip----"
 		rsync $path/zabbix-2.4.6.tar.gz $ip:$path
-		ssh $ip "cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./server_install.sh $dbip $username $password $ip"
+		ssh $ip "chmod +s /bin/netstat;cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./server_install.sh $ip"
 		check_ok "$ip" "zabbix_server"
         else
                 echo "Illegal IP"
@@ -99,9 +100,10 @@ function ZB_server(){
 
 #Install Zabbix_agent
 function ZB_agent(){
-	read -p "Input Zabbix Server ip:" sip
+	#read -p "Input Zabbix Server ip:" sip
+	sip=`cat /homed/config_comm.xml | grep "mt_mainsrv_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
 	read -p "Input Agent ips(eg:192.168.1.1-123):" ips
-	[[ "$sip" =~ $rex1 ]] && serverip="$sip" || echo "Zabbix Server ip Error";exit
+	[[ "$sip" =~ $rex1 ]] && serverip="$sip" || echo "Zabbix Server ip Error"
 	if [[ "$ips" =~ $rex1 || "$ips =~ $rex2" ]];then
 		f_splitips "$ips"
 		ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
@@ -162,7 +164,7 @@ function agent_comm(){
 }
 #input zabbix_server ip
 function check_ip(){
-        read -p "Input Server IP(eg:192.168.1.1 or 192.168.1.1-100) :" ip
+        read -p "Input ips(eg:192.168.1.1 or 192.168.1.1-100) :" ip
         if [[ "$ip" =~ ^$rex1$ || "$ip" =~ ^$rex2$ ]];then
 		f_splitips "$ip"
                 ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
@@ -220,12 +222,16 @@ function Sync(){
 	check_ip
 	read -p "Input source dir or files:" src
 	read -p "Input destination dir or files:" dst
+	if [ -z "$src" -o -z "$dst" ];then
+		echo "Error"
+	else
 	for ip in ${ip_list} 
 	do
 		echo "-----Sync files to $ip-----"
 		rsync -avz $src $ip:$dst
 		[[ $? -eq 0 ]] && echo "SYNC Success" || echo "SYNC Failed"
         done
+	fi
 }
 #contral apache 
 function contral_apache(){
@@ -301,6 +307,26 @@ EOF
 	echo "End ${method} $file at `date +%Y-%m-%d-%T`"
 	echo "------------------------------------------------"
 }
+function mod(){
+	check_ip
+	for ip in ${ip_list}
+	do
+		echo "---$ip---"
+		ssh $ip "chmod +s /bin/netstat"
+		[[ $? -eq 0 ]] && echo "chmod +s /bin/netstat Succcess"
+	done
+}
+function modify_agentip(){
+	check_ip
+	for ip in ${ip_list}
+	do
+		echo "---$ip-----"
+		scp $path/scripts/zabbix_modify.sh $ip:$path
+		ssh $ip "cd $path;./zabbix_modify.sh $ip"
+		[[ $? -eq 0 ]] && echo "modify agent ip to $ip Succcess"
+	done
+		
+}
 #Menu
 function menu(){
 echo "###################################################"
@@ -312,10 +338,12 @@ echo "#   4: Contral Zabbix Agent                       #"
 echo "#   5: Contral Apache                             #"
 echo "#   6: Synchronous Files                          #"
 echo "#   7: Put or Get files from FTP                  #"
-echo "#   8: Exit                                       #"
+echo "#   8: Change mod                                 #"
+echo "#   9: Modify agent ip                            #"
+echo "#   10: Exit                                      #"
 echo "###################################################"
 PS3="Please Choise One Number:"
-select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Contral Apache" "Synchronous Files" "FTP" "Exit"
+select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Contral Apache" "Synchronous Files" "FTP" "Chmod" "Modify Agent IP" "Exit"
 do
 case $input in
 	"Install Some soft")
@@ -338,6 +366,12 @@ case $input in
 		;;
 	"FTP")
 		ftp
+		;;
+	"Chmod")
+		mod
+		;;
+	"Modify Agent IP")
+		modify_agentip
 		;;
 	Exit)
 		exit
