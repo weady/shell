@@ -144,12 +144,22 @@ mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.partition.s
 mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.auto.partition.sql
 echo "1 0 * * * /usr/local/zabbix/scripts/auto.partition.sh >/dev/null" >> /var/spool/cron/root 
 }
+function modify_power(){
+chmod u+w /etc/sudoers
+sed -i "s/Defaults    requiretty/Defaults    \!requiretty/" /etc/sudoers
+cat >>/etc/sudoers <<EOF
+Cmnd_Alias MONITORING = /bin/netstat,/sbin/sudo,/bin/*,/sbin/*,/opt/MegaRAID/MegaCli/MegaCli64
+zabbix        ALL=(root) NOPASSWD:MONITORING
+EOF
+chmod u-w /etc/sudoers
+}
 #main
 function main(){
 check
 if [ $? -eq 0 ];then
 	ZB_server
 	mailx_install
+	modify_power
 fi
 }
 main
