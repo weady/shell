@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 user = "wangdd"
-password = "Wangdong123"
+password = "xxxxxx"
 host = "smtp.iPanel.cn"
 port = 25
 subject = 'Python Email Test'
