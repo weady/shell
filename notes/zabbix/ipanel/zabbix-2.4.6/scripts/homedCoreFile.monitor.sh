@@ -10,11 +10,10 @@
 process="$1"
 path="/homed/$process/bin/"
 if [ ! -d "$path" ];then
-	echo "Search the dir does not exist!"
+	echo "Search $path dir does not exist!"
 else
-	result=`find $path -name "core.*"`
-	COUNT=`echo $result | wc -l`
-	if [ COUNT == 0 ];then
+	COUNT=`find $path -name 'core.*' | wc -l`
+	if [ $COUNT == 0 ];then
 		echo "Did not find the core file!"
 	else
 		echo "find core file！"

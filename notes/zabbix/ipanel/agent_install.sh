@@ -36,12 +36,24 @@ function check_agent(){
 		clean
 	fi
 }
+function modify_power(){
+chmod u+w /etc/sudoers
+tmp=`cat /etc/sudoers | grep "zabbix"`
+if [ -z "$tmp" ];then
+sed -i "s/Defaults    requiretty/Defaults    \!requiretty/" /etc/sudoers
+cat >>/etc/sudoers <<EOF
+Cmnd_Alias MONITORING = /bin/netstat,/sbin/sudo,/bin/*,/sbin/*,/opt/MegaRAID/MegaCli/MegaCli64
+zabbix        ALL=(root) NOPASSWD:MONITORING
+EOF
+fi
+chmod u-w /etc/sudoers
+}
 #-----------------------------------------------------------------
 ### add zabbix user
 id zabbix || useradd zabbix -s /sbin/nologin
 ##install zabbix
-clientip="$1"
-serverip="$2"
+clientname=`hostname`
+serverip="$1"
 path="/usr/local/zabbix"
 dst_path="/usr/local/src"
 check_agent
@@ -58,8 +70,8 @@ mkdir -p $path/scripts
 \cp -ar $dst_path/zabbix-2.4.6/scripts/* $path/scripts/
 \cp -a $dst_path/zabbix-2.4.6/scripts/zabbix_agent /etc/init.d
 check_ok
-sed -i "s/zabbixagentip/$clientip/" $path/etc/zabbix_agentd.conf
-sed -i "s/zabbixserip/$serverip/" $path/etc/zabbix_agentd.conf
+sed -i "s/zabbixagentip/$clientname/" $path/etc/zabbix_agentd.conf
+sed -i "s/zabbixserip/$serverip/g" $path/etc/zabbix_agentd.conf
 check_ok
 ## start zabbix_agent
 $path/sbin/zabbix_agentd -c $path/etc/zabbix_agentd.conf

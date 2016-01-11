@@ -7,10 +7,12 @@
 
 #check env function
 #
-dbip=`cat /homed/config_comm.xml | grep "mt_db_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
-username="root"
-password="123456"
+#dbip=`cat /homed/config_comm.xml | grep "mt_db_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
+dbip="127.0.0.1"
+username=$3
+password=$4
 z_server=$1
+z_name=`hostname`
 function check(){
 php_soft="/usr/local/php/bin"
 httpd_proc=`ps -ef | grep httpd | grep -v grep`
@@ -44,7 +46,7 @@ zb_conf="/usr/local/zabbix/etc/zabbix_server.conf"
 }
 #Install server
 function ZB_server(){
-	yum install -y -q --skip-broken gcc mysql-devel net-snmp-devel net-snmp-utils php-gd php-mysqlphp-common php-bcmath php-mbstring php-xml curl-devel iksemel* OpenIPMIOpenIPMI-devel fping libssh2 libssh2-devel unixODBC unixODBC-develmysql-connector-odbc openldap openldap-devel java java-devel
+	yum install -y -q --skip-broken gcc mysql-devel net-snmp-devel net-snmp-utils php-gd php-mysqlphp-common php-bcmath php-mbstring php-xml curl-devel iksemel* OpenIPMIOpenIPMI-devel fping libssh2 libssh2-devel unixODBC unixODBC-develmysql-connector-odbc openldap openldap-devel java java-devel >/dev/null
 	mysql_pro=`ps -ef | grep mysql | grep -v grep`
 	if [ -n "$mysql_pro" ];then
 	mysql -u$username -p$password -h$dbip -e "use mysql;delete from user where user='';flush privileges;" 
@@ -75,15 +77,16 @@ function ZB_server(){
 			\cp -a /usr/local/zabbix/scripts/zabbix_server /etc/init.d/zabbix_server
 			\cp -a /usr/local/zabbix/scripts/zabbix_agent /etc/init.d/zabbix_agent
 			\cp -a /usr/local/src/zabbix-2.4.6/conf/* /usr/local/zabbix/etc
-			sed -i "s/192.168.36.130/$z_server/" /usr/local/zabbix/etc/zabbix_server.conf
-			sed -i "s/DBHost=127.0.0.1/DBHost=$dbip/" /usr/local/zabbix/etc/zabbix_server.conf
-			sed -i "s/192.168.36.130/$z_server/g" /usr/local/zabbix/etc/zabbix_agentd.conf
-			\cp -a /usr/local/zabbix/etc/agentd/zabbix_agentd.conf.d/userparameter_script.conf /usr/local/zabbix/etc/zabbix_agentd.conf.d
+			rm -rf /usr/local/zabbix/etc/zabbix_agent.conf* 
+			rm -rf /usr/local/zabbix/etc/zabbix_proxy.conf* 
+			rm -rf /usr/local/zabbix/etc/zabbix_agentd.win.conf
+			sed -i "s/192.168.52.214/$z_server/" /usr/local/zabbix/etc/zabbix_server.conf
+			sed -i "s/zabbixserip/$z_server/g" /usr/local/zabbix/etc/zabbix_agentd.conf
+			sed -i "s/zabbixagentip/$z_name/" /usr/local/zabbix/etc/zabbix_agentd.conf
 			mv /usr/local/php/lib/php.ini	/usr/local/php/lib/php.ini.bak >/dev/null 2>&1
 			\cp -a /usr/local/src/zabbix-2.4.6/conf/php.ini	/usr/local/php/lib
 			\cp -a /usr/local/src/zabbix-2.4.6/web/zabbix	/var/www
-			sed -i "s/192.168.36.130/$z_server/" /var/www/zabbix/conf/zabbix.conf.php
-			sed -i "s/127.0.0.1/$dbip/" /var/www/zabbix/conf/zabbix.conf.php
+			sed -i "s/192.168.102.230/$z_server/" /var/www/zabbix/conf/zabbix.conf.php
 			service zabbix_server start
 			service zabbix_agent start
 		else
@@ -140,8 +143,8 @@ zb=`date +%Y-%m -d '+2 month'`
 tmon=`date +%Y%m -d '+2 month'`
 sed -i "s/NOWDAY/$day/g;s/NEXTDAY/$nday/g;s/ZBBD/$zc/g;s/TZZ/$zd/g" /usr/local/zabbix/scripts/zabbix.partition.sql
 sed -i "s/NOWMON/$mon/g;s/NEXTMON/$nmon/g;s/ZZZM/$za/g;s/BBZZ/$zb/g" /usr/local/zabbix/scripts/zabbix.partition.sql
-mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.partition.sql
-mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.auto.partition.sql
+mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.partition.sql >/dev/null 2>&1
+mysql -uzabbix -pzabbixpass zabbix </usr/local/zabbix/scripts/zabbix.auto.partition.sql >/dev/null 2>&1
 echo "1 0 * * * /usr/local/zabbix/scripts/auto.partition.sh >/dev/null" >> /var/spool/cron/root 
 }
 function modify_power(){
@@ -158,8 +161,7 @@ function main(){
 check
 if [ $? -eq 0 ];then
 	ZB_server
-	mailx_install
-	modify_power
+	optimize_mysql
 fi
 }
 main

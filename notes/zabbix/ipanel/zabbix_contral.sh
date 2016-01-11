@@ -83,16 +83,20 @@ function f_splitips(){
 #Install zabbix server
 	
 function ZB_server(){
-	#ip=`cat /homed/config_comm.xml | grep "mt_mainsrv_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
-        read -p " Zabbix Server Listen IP:" ip
-	#read -p " Databae IP:" dbip
-        #read -p " Databae user:" username
-        #read -p " Databae passwd:" password
+        read -p " Your want into Zabbix Server to which slave(eg:slave14):" slave
+	ip=`cat /etc/hosts | grep "$slave\>" | head -n 1|awk '{print $1}'`
+	if [ -z "$ip" ];then
+		echo "There is no this $slave"
+		exit
+	fi
+	read -p " Databae IP:" dbip
+        read -p " Databae user(root):" username
+        read -p " Databae passwd:" password
         if [[ "$ip" =~ $rex1 ]];then
 		echo "---- Install zabbix_server in $ip----"
 		rsync $path/zabbix-2.4.6.tar.gz $ip:$path
-		ssh $ip "chmod +s /bin/netstat;cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./server_install.sh $ip"
-		check_ok "$ip" "zabbix_server"
+		ssh $ip "cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./server_install.sh $ip $dbip $username $password"
+		echo "Zabbix Server ip is $ip"
         else
                 echo "Illegal IP"
         fi
@@ -100,9 +104,9 @@ function ZB_server(){
 
 #Install Zabbix_agent
 function ZB_agent(){
-	#read -p "Input Zabbix Server ip:" sip
-	sip=`cat /homed/config_comm.xml | grep "mt_mainsrv_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
-	read -p "Input Agent ips(eg:192.168.1.1-123):" ips
+	read -p "Input Zabbix Server ip:" sip
+	#sip=`cat /homed/config_comm.xml | grep "mt_mainsrv_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
+	read -p "Input Agent ips(eg:192.168.1.1-123 or 192.168.1.1):" ips
 	[[ "$sip" =~ $rex1 ]] && serverip="$sip" || echo "Zabbix Server ip Error"
 	if [[ "$ips" =~ $rex1 || "$ips =~ $rex2" ]];then
 		f_splitips "$ips"
@@ -111,7 +115,7 @@ function ZB_agent(){
 		do
 			echo " Install zabbix_agent to $ip"
 			rsync $path/zabbix-2.4.6.tar.gz $ip:$path
-			ssh $ip "cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./agent_install.sh $ip $serverip"
+			ssh $ip "cd $path;tar zxvf zabbix-2.4.6.tar.gz >/dev/null;./agent_install.sh $serverip"
 			check_ok "$ip" "zabbix_agent"
 		done
 	else
@@ -275,9 +279,8 @@ function modify_agentip(){
 		
 }
 function optimize_table(){
-	check_ip
-	dbip=`cat /homed/config_comm.xml | grep "mt_db_ip" |sed -re 's/.*>(.*)<.*$/\1/g'`
-	ssh $dbip "cd /usr/local/zabbix/scripts;./optimize.mysql.sh"
+	cd /usr/local/zabbix/scripts
+	./optimize.mysql.sh
 	[[ $? -eq 0 ]] && echo "optimize table succcess"
 }
 #Menu
@@ -290,13 +293,10 @@ echo "#   3: Install Zabbix Agent                       #"
 echo "#   4: Contral Zabbix Agent                       #"
 echo "#   5: Synchronous Files                          #"
 echo "#   6: Put or Get files from FTP                  #"
-echo "#   7: Change mod                                 #"
-echo "#   8: Optimize table                             #"
-echo "#   9: Modify agent ip                            #"
-echo "#  10: Exit                                       #"
+echo "#   7: Exit                                       #"
 echo "###################################################"
 PS3="Please Choise One Number:"
-select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Synchronous Files" "FTP" "Chmod" "Optimize table" "Modify Agent IP" "Exit"
+select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Synchronous Files" "FTP" "Exit"
 do
 case $input in
 	"Install Some soft")
@@ -316,15 +316,6 @@ case $input in
 		;;
 	"FTP")
 		ftp
-		;;
-	"Chmod")
-		mod
-		;;
-	"Optimize table")
-		optimize_table
-		;;
-	"Modify Agent IP")
-		modify_agentip
 		;;
 	"Exit")
 		exit

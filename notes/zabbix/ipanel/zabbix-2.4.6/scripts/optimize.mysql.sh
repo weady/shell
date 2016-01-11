@@ -28,4 +28,4 @@ function opt_table(){
 	done
 }
 select_table
-opt_table
+#opt_table

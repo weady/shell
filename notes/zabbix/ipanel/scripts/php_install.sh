@@ -7,7 +7,7 @@
 #Install PHP
 function install_php(){
 	echo "Installing Dependent Packages,Please wait....."
-	yum install -y gcc libjpeg libjpeg-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql php-bcmath php-mbstring php-xm gettext gdb libpng libpng-devel freetype freetype-devel libgpeg gd-devel
+	yum install -y gcc libjpeg libjpeg-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql php-bcmath php-mbstring php-xm gettext gdb libpng libpng-devel freetype freetype-devel libgpeg gd-devel >/dev/null
 	cd /usr/local/src
 	tar zxvf php.tgz >/dev/null
 	[[ ! -d "/usr/local/libxml2" ]] && install_libxml
