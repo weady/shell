@@ -24,9 +24,9 @@ done
 echo "------------------------------------------------" |tee -a $log_file
 echo "Backup finished at `date +%Y-%m-%d-%T`" | tee -a $log_file
 ##put backup_file to ftp
-ftp_ip="ftp.ipanel.cn"
-username="homedmaintain"
-passwd="HomedMaintain44"
+ftp_ip="ftp.xxx.cn"
+username="xxxxxxx"
+passwd="xxxxx"
 cd $dst_dir
 echo "Start put file to ftp at `date +%Y-%m-%d-%T`" | tee -a $log_file
 echo "------------------------------------------------" |tee -a $log_file
