@@ -5,8 +5,8 @@
 
 ##put backup_file to ftp
 ftp_ip="xxxxxxxxxxx"
-username="homedmaintain"
-passwd="HomedMaintain44"
+username="xxxxx"
+passwd="xxxxx"
 echo "Start put file to ftp at `date +%Y-%m-%d-%T`"
 echo "------------------------------------------------"
 ftp -ivn $ftp_ip  <<EOF 
