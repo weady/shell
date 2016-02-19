@@ -14,16 +14,16 @@ import email.MIMEImage
 import os.path
 
 
-user = "wangdd"
-password = "Wangdong123"
-host = "smtp.iPanel.cn"
+user = "xxxx"
+password = "xxxx"
+host = "smtp.xx.cn"
 port = 25
 subject = "Python Email Test"
-sender = "wangdd@iPanel.cn"
-receivers = ["708964732@qq.com"]
+sender = "wangdd@xxx.cn"
+receivers = ["1111111@qq.com"]
  
-message = """From: From Person <wangdd@iPanel.cn>
-To: To Person <708964732@qq.com>
+message = """From: From Person <wangdd@xxx.cn>
+To: To Person <1111111@qq.com>
 Subject: SMTP e-mail test
  
 This is a test e-mail message.
@@ -43,8 +43,8 @@ def smp_mail():
 #----------------------HTML-------------------------------------
 msg = email.MIMEText.MIMEText('<pre><h1>你好</h1></pre>','html','utf-8')
 msg['Subject'] = subject
-msg['From'] = 'wangdd@iPanel.cn'
-msg['To'] = '708964732@qq.com'
+msg['From'] = 'wangdd@xxxxx.cn'
+msg['To'] = '711111111@qq.com'
 def html_mail():
     try:
        server = smtplib.SMTP()
@@ -61,8 +61,8 @@ def html_mail():
 #------------------图片内嵌入邮件正文----------------------------------
 msg = email.MIMEMultipart.MIMEMultipart('related')
 msg['Subject'] = subject
-msg['From'] = 'wangdd@iPanel.cn'
-msg['To'] = '708964732@qq.com'
+msg['From'] = 'wangdd@xxxx.cn'
+msg['To'] = '111111@qq.com'
 msgText = email.MIMEText.MIMEText('<img alt="" src="cid:image1">','html','utf-8')
 msg.attach(msgText)
 
@@ -101,8 +101,8 @@ def image_mail():
 #************************************************************************************
 def send_attach():
     file_name = r"disk_status.pdf"#附件名
-    From = "wangdd@iPanel.cn" 
-    To = "708964732@qq.com"
+    From = "wangdd@xxxx.cn" 
+    To = "xxxxxx@qq.com"
     server = smtplib.SMTP(host)
     server.login(user,password) #仅smtp服务器需要验证时
     
