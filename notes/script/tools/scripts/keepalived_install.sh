@@ -122,7 +122,7 @@ done
 }
 
 #wget -q http://www.keepalived.org/software/keepalived-1.2.19.tar.gz -P $soft_path >>/dev/null
-wget -q --ftp-user=homedmaintain --ftp-password=HomedMaintain44 http://ftp.ipanel.cn:30/homedmaintain/soft/keepalived-1.2.19.tar.gz  -P $soft_path >>/dev/null
+wget -q --ftp-user=xxxxx --ftp-password=xxxxx http://xxxx:30/homedmaintain/soft/keepalived-1.2.19.tar.gz  -P $soft_path >>/dev/null
 if [ $? -ne 0 ];then
 	echo "Download keepalived-1.2.19.tar.gz for FTP Failed!"
 	install_keepalived
