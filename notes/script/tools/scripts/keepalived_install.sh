@@ -66,6 +66,7 @@ vrrp_instance LVS {
     state $LVS_TYPE
     interface $INTER
     virtual_router_id 51
+    lvs_sync_daemon_inteface $INTER
     priority $LVS_priority
     advert_int 1
     authentication {
@@ -81,7 +82,10 @@ fi
 #--------------------------------------------
 for VIP in $VIPS
 do
+exsit_vip=`cat /etc/keepalived/keepalived.conf | egrep  "^$VIP"` 
+if [ -z "exsit_vip" ];then
 sed -i "/virtual_ipaddress/a $VIP" /etc/keepalived/keepalived.conf
+fi
 for PORT in $PORTS
 do
 cat >>/etc/keepalived/keepalived.conf << EOF
@@ -118,7 +122,7 @@ done
 }
 
 #wget -q http://www.keepalived.org/software/keepalived-1.2.19.tar.gz -P $soft_path >>/dev/null
-wget -q --ftp-user=xxxx --ftp-password=xxxxx http://ftp.xxxx.cn:30/homedmaintain/soft/keepalived-1.2.19.tar.gz  -P $soft_path >>/dev/null
+wget -q --ftp-user=homedmaintain --ftp-password=HomedMaintain44 http://ftp.ipanel.cn:30/homedmaintain/soft/keepalived-1.2.19.tar.gz  -P $soft_path >>/dev/null
 if [ $? -ne 0 ];then
 	echo "Download keepalived-1.2.19.tar.gz for FTP Failed!"
 	install_keepalived
