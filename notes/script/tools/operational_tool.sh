@@ -234,9 +234,9 @@ function Sync(){
 }
 #Get or Put file to FTP
 function ftp(){
-	ftp_ip="ftp.xxxxx.cn"
-	username="xxxxx"
-	passwd="xxxx"
+	ftp_ip="ftp.ipanel.cn"
+	username="homedmaintain"
+	passwd="HomedMaintain44"
 	read -p "Input file(eg: put/get local_dir ftp_dir files):" method l_dir ftp_dir file
 	echo "------------------------------------------------"
 	echo "Start $method $file to  at `date +%Y-%m-%d-%T`"
@@ -314,6 +314,26 @@ function LVS(){
 		
 	sh $path/scripts/keepalived_install.sh "$vip_list" "$port_list" "$realip_list" "$lvs_type" "$bind_inter" "$lvs_priority" "$lvs_algo"
 }
+
+#-----------------------------------------------------------------------------------
+#这个是更新zabbix脚本的命令,把更新目录位于/usr/local/src/zb_update目录下
+function zb_update(){
+	read -p "Please Input zabbix server host's name or host's ip(eg:slave14):" hostip
+        srcpath="/usr/local/src/update"
+        dstpath="/usr/local/zabbix"
+        user="zabbix"
+        passwd="zabbixpass"
+        mysql_cmd="mysql -B -u$user -p$passwd -h$hostip zabbix -e"
+        sql="select host from hosts where available=1"
+        clients=`$mysql_cmd "$sql"|grep -v 'host'`
+        for ip in $clients
+        do
+                echo "----------update files to $ip------------"
+                rsync -av $srcpath/scripts/* $ip:$dstpath/scripts
+                rsync -av $srcpath/configure/* $ip:$dstpath/etc/zabbix_agentd.conf.d
+                service zabbix_agent restart
+        done
+}
 #-----------------------------------------------------------------------------------
 #Menu
 function menu(){
@@ -323,13 +343,14 @@ echo "#   1: Install PHP Mysql Apache                   #"
 echo "#   2: Install Zabbix Server                      #"
 echo "#   3: Install Zabbix Agent                       #"
 echo "#   4: Contral Zabbix Agent                       #"
-echo "#   5: Synchronous Files                          #"
-echo "#   6: Put or Get files from FTP                  #"
-echo "#   7: Keepalive LVS configure                    #"
-echo "#   8: Exit                                       #"
+echo "#   5: Update scripts for zabbix                  #"
+echo "#   6: Synchronous Files                          #"
+echo "#   7: Put or Get files from FTP                  #"
+echo "#   8: Keepalive LVS configure                    #"
+echo "#   9: Exit                                       #"
 echo "###################################################"
 PS3="Please Choise One Number:"
-select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Synchronous Files" "FTP" "Keepalive LVS" "Exit"
+select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Update zabbix scripts" "Synchronous Files" "FTP" "Keepalive LVS" "Exit"
 do
 case $input in
 	"Install Some soft")
@@ -343,6 +364,9 @@ case $input in
 		;;
 	"Contral Zabbix Agent")
 		contral_agent
+		;;
+	"Update zabbix scripts")
+		zb_update
 		;;
 	"Synchronous Files")
 		Sync
