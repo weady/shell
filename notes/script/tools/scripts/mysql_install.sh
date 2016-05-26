@@ -15,7 +15,7 @@ mysql_db=`cd ${default_data} && find ./ -mindepth 1 -type d | egrep -v "mysql|te
 if [ -n "$mysql_pro" ];then
 	echo "mysql is running"
 	exit
-else [ -d "$default_data" -o -d "$data_dir" ];then
+elif [ -d "$default_data" -o -d "$data_dir" ];then
 	echo "mysql installed"
 	exit
 fi
@@ -30,7 +30,7 @@ if [ $? = "0" ]
 then
         cd /usr/bin
         ./mysql_install_db --user=mysql --datadir=$default_data >/dev/null
-        \cp $soft_path/my.cnf /etc/my.cnf
+        \cp -a /usr/local/src/zabbix-2.4.6/config/my.cnf /etc/my.cnf
         setenforce=0
         chkconfig --add mysqld
         service mysqld start

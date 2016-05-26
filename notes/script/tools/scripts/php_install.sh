@@ -7,7 +7,7 @@
 #Install PHP
 function install_php(){
 	echo "Installing Dependent Packages,Please wait....."
-	yum install -y gcc libjpeg libjpeg-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql php-bcmath php-mbstring php-xm gettext gdb libpng libpng-devel freetype freetype-devel libgpeg gd-devel
+	yum install -y gcc libjpeg libjpeg-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql php-bcmath php-mbstring php-xm gettext gdb libpng libpng-devel freetype freetype-devel libgpeg gd-devel >/dev/null
 	cd /usr/local/src
 	tar zxvf php.tgz >/dev/null
 	[[ ! -d "/usr/local/libxml2" ]] && install_libxml
@@ -18,6 +18,11 @@ function install_php(){
 	--with-apxs2=/usr/local/apache/bin/apxs \
 	--with-libxml-dir=/usr/local/libxml2 \
 	--enable-sockets \
+	--with-sqlite3 \
+	--with-pdo-mysql \
+	--with-curl \
+	--with-posix \
+	--with-pcntl \
 	--with-mysql=mysqlnd \
 	--with-mysqli \
 	--with-gettext=/usr/lib64 \
