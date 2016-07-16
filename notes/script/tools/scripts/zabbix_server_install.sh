@@ -13,6 +13,18 @@ username=$3
 password=$4
 z_server=$1
 z_name=`hostname`
+#----------------------------------------------
+#Install some soft
+function install_soft(){
+	Megacli_path="/opt/MegaRAID/MegaCli"
+	yum install -y -q --skip-broken bc sysstat  >/dev/null 2>&1
+	if [ ! -d "$Megacli_path" ];then
+		cd /usr/local/src/zabbix-2.4.6/soft
+		rpm -i Lib_Utils-1.00-09.noarch.rpm --nodeps >/dev/null 2>&1
+		rpm -i MegaCli-8.00.48-1.i386.rpm --nodeps >/dev/null 2>&1
+	fi
+}
+#----------------------------------------------
 function check(){
 	php_path="/usr/local/php/bin"
 	httpd_path="/usr/local/apache"
@@ -42,7 +54,7 @@ function check(){
 }
 #Install server
 function ZB_server(){
-	yum install -y -q --skip-broken gcc mysql-devel net-snmp-devel net-snmp-utils php-gd php-common php-xml curl-devel iksemel* OpenIPMI OpenIPMI-devel fping libssh2 libssh2-devel unixODBC unixODBC-devel mysql-connector-odbc openldap openldap-devel java java-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql gettext gdb freetype freetype-devel zlib-devel zlib libpng-devel libpng* libjpeg* >/dev/null
+	yum install -y -q --skip-broken autoconf automake libtool gcc mysql-devel net-snmp-devel net-snmp-utils php-gd php-common php-xml curl-devel iksemel* OpenIPMI OpenIPMI-devel fping libssh2 libssh2-devel unixODBC unixODBC-devel mysql-connector-odbc openldap openldap-devel java java-devel net-snmp-devel curl-devel perl-DBI php-gd php-mysql gettext gdb freetype freetype-devel zlib-devel zlib libpng-devel libpng* libjpeg* >/dev/null
 	mysql_pro=`ps -ef | grep mysql | grep -v grep`
 	if [ -n "$mysql_pro" ];then
 	mysql -u$username -p$password -h$dbip -e "use mysql;delete from user where user='';flush privileges;" 
@@ -76,7 +88,6 @@ function ZB_server(){
 			rm -rf /usr/local/zabbix/etc/zabbix_agent.conf* 
 			rm -rf /usr/local/zabbix/etc/zabbix_proxy.conf* 
 			rm -rf /usr/local/zabbix/etc/zabbix_agentd.win.conf
-			sed -i "s/192.168.52.214/$z_server/" /usr/local/zabbix/etc/zabbix_server.conf
 			sed -i "s/zabbixserip/$z_server/g" /usr/local/zabbix/etc/zabbix_agentd.conf
 			sed -i "s/zabbixagentip/$z_name/" /usr/local/zabbix/etc/zabbix_agentd.conf
 			mv /usr/local/php/lib/php.ini	/usr/local/php/lib/php.ini.bak >/dev/null 2>&1
@@ -144,10 +155,11 @@ echo "1 0 * * * /usr/local/zabbix/scripts/auto.partition.sh >/dev/null" >> /var/
 #--------------------------------------------------------------------------------
 #main
 function main(){
-check
-if [ $? -eq 0 ];then
-	ZB_server
-	optimize_mysql
-fi
+	check
+	if [ $? -eq 0 ];then
+		install_soft
+		ZB_server
+		optimize_mysql
+	fi
 }
 main

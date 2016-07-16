@@ -17,6 +17,16 @@ serverip="$1"
 path="/usr/local/zabbix"
 dst_path="/usr/local/src"
 #
+function install_soft(){
+        Megacli_path="/opt/MegaRAID/MegaCli"
+        yum install -y -q --skip-broken bc sysstat  >/dev/null 2>&1
+        if [ ! -d "$Megacli_path" ];then
+                cd /usr/local/src/zabbix-2.4.6/soft
+                rpm -i Lib_Utils-1.00-09.noarch.rpm --nodeps >/dev/null 2>&1
+                rpm -i MegaCli-8.00.48-1.i386.rpm --nodeps >/dev/null 2>&1
+        fi
+}
+
 function clean(){
 	if [ ! "$clientname" == "master" ];then
 		rm -rf /usr/local/src/zabbix-2.4.6
@@ -57,7 +67,8 @@ chmod u-w /etc/sudoers
 }
 #-----------------------------------------------------------------
 check_agent
-yum install -y -q auto* >/dev/null
+install_soft
+yum install -y -q auto* autoconf automake libtool >/dev/null
 cd $dst_path/zabbix-2.4.6
 autoreconf -ivf
 ./configure --prefix=$path --enable-agent --with-net-snmp 

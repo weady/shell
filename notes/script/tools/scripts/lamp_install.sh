@@ -17,6 +17,8 @@ function clean(){
 }
 #----------------------------------------------------
 function install_apache(){
+	http_data_path="/homed/homedbigdata/httpdata/clusterdata"
+	[[ ! -d "$httpd_data_path" ]] && mkdir -p $http_data_path
 	port=`netstat -unltp | grep ':80\>'`
 	apache_path="/usr/local/apache"
 	if [ -n "$port" -o -d "$apache_path" ];then
@@ -53,10 +55,12 @@ function install_mysql(){
 		echo "mysql have installed"
 	else
 		echo "Starting Install Mysql-5.5.33,Please waiting....."
+		yum remove -y MySQL-server* MySQL-devel mysql* >/dev/null 2>&1
+		[[ -z `id mysql` ]] && useradd mysql
 		cd $path
                 tar zxvf mysql-5.5.33-green.tar.gz -C /usr/local/ >/dev/null
                 [ -f /etc/my.cnf  ] && mv /etc/my.cnf /etc/my.cnf.bak
-                \cp /usr/local/mysql/my.cnf /etc/
+                \cp /usr/local/mysql/data/my.cnf /etc/
                 if [ -d /r2/mysqldata ];then
                    echo "--/r2/mysqldata exist,it will backup on /r2/mysqldata_back--"
                    if cp -r  /r2/mysqldata /r2/mysqldata_back &>/dev/null ;then
@@ -67,8 +71,10 @@ function install_mysql(){
                 chown -R mysql:mysql /r2/mysqldata
                 /usr/local/mysql/scripts/mysql_install_db --user=mysql --basedir=/usr/local/mysql --datadir=/r2/mysqldata &>/dev/null
                 \cp /usr/local/mysql/support-files/mysql.server  /etc/init.d/mysqld
+		echo "export PATH=$PATH:/usr/local/mysql/bin" >> /etc/profile
+		source /etc/profile
                 service mysqld start >/dev/null && echo "start mysql sucess"
-                mysql -uroot -e "SET PASSWORD = PASSWORD('123456');drop database test"
+                mysql -uroot -e "SET PASSWORD = PASSWORD('xxxxx');drop database test"
 		auto_start=`cat /etc/rc.local | grep 'service mysqld start'`
 		[[ -z "$auto_start" ]] && echo "service mysqld start" >> /etc/rc.local
 	fi
@@ -77,15 +83,16 @@ function install_mysql(){
 case $1 in
         'apache')
 		install_apache
-		clean "apache-2.2.22.tar.gz"
+		clean "apache-2.2.21-green.tar.gz"
 	        ;;
         'php')
 		install_php
-		clean "php-5.5.7.tar.gz"
+		clean "php-5.5.7-green.tar.gz"
 	        ;;
         'mysql')
 		install_mysql
-		clean "mysql-5.5.33.tar.gz"
+		clean "mysql-5.5.33-green.tar.gz"
+		source /etc/profile
 	        ;;
 	*)
 		echo "Usage:$0 {apache|php|mysql}"
