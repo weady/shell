@@ -132,46 +132,29 @@ function check_ok(){
 }
 #contral zabbix_agent
 function contral_agent(){
-	read -p "Input Agent Ips(eg:192.168.1.1 or 192.168.1.1-100):" ips
-	if [[ "$ips" =~ ^$rex1$ || "$ips" =~ ^$rex2$ ]];then
-		f_splitips "$ips"
-		ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
-		read -p "Choise one{status|start|restart|stop}:" command
-		case $command in
-		status)
-			agent_comm
-			;;
-		start)
-			agent_comm
-			;;	
-		restart)
-			agent_comm
-			;;	
-		stop)
-			agent_comm
-			;;
-		*)
-			echo "Error"
-			;;
-		esac
+	read -p "Input zabbix agent hostname(eg:slave1 or slave1-29):" name
+	read -p "Choise one{status|start|restart|stop}:" command
+	targ=`echo "$name" | grep '-' | grep -v grep`
+	if [ -n "$targ" ];then
+		num=`echo "$name" | tr -d '[a-zA-Z]'`
+		first_num=`echo "$num" |awk -F '-' '{print $1}'`
+		last_num=`echo "$num" |awk -F '-' '{print $2}'`
+		for i in `seq $first_num $last_num`
+		do
+			echo "-------Hostname is slave${i}-----------------"
+        		ssh  slave${i} "service zabbix_agent $command"
+		done
 	else
-		echo "Error"
+		echo "-------Hostname is $name-----------------"
+		ssh $name "service zabbix_agent $command"
 	fi
-}
-#command 
-function agent_comm(){
-	for ip in ${ip_list}
-	do
-		echo "------------$ip--------------------"
-		ssh $ip "service zabbix_agent $command"
-	done
 }
 #input zabbix_server ip
 function check_ip(){
-    read -p "Input ips(eg:192.168.1.1 or 192.168.1.1-100) :" ip
-    if [[ "$ip" =~ ^$rex1$ || "$ip" =~ ^$rex2$ ]];then
+	read -p "Input ips(eg:192.168.1.1 or 192.168.1.1-100) :" ip
+	if [[ "$ip" =~ ^$rex1$ || "$ip" =~ ^$rex2$ ]];then
 		f_splitips "$ip"
-        ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
+        	ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
 	else
 		echo "Invalid IP"
 		check_ip
@@ -299,7 +282,7 @@ function Sync(){
 }
 #Get or Put file to FTP
 function ftp(){
-	ftp_ip="ftp.xxx.cn"
+	ftp_ip="ftp.xxxx.cn"
 	username="xxxx"
 	passwd="xxxxx"
 	read -p "Input file(eg: put/get local_dir ftp_dir files):" method l_dir ftp_dir file
@@ -371,7 +354,7 @@ function zb_update(){
                 echo "----------update files to $ip------------"
                 rsync -av $srcpath/scripts/* $ip:$dstpath/scripts
                 rsync -av $srcpath/configure/* $ip:$dstpath/etc/zabbix_agentd.conf.d
-                service zabbix_agent restart
+                ssh $ip "service zabbix_agent restart"
         done
 }
 #-----------------------------------------------------------------------------------
@@ -399,6 +382,237 @@ function stop_disk_monitor(){
 	fi
 }
 #-----------------------------------------------------------------------------------
+#安装部署单机版Homed
+function install_single_homed(){
+	read -p "Please input local IP:" ip
+	root_path=`cd $(dirname $0);pwd`
+	if [[ "$ip" =~ ^$rex1$ || "$ip" =~ ^$rex2$ ]];then
+		f_splitips "$ip"
+        	ip_list=`echo $last_split_ips | sed 's/ /\n/g'`
+		$root_path/scripts/single_homed_install.sh $ip_list
+	else
+		echo "Invalid IP"
+		install_single_homed
+	fi
+}
+#-----------------------------------------------------------------------------------
+function dump_mysql(){
+	
+	default_path="/usr/local/soft/mysql_structure"
+	[[ ! -d "$default_path" ]] && mkdir -p $default_path >/dev/null
+	user='root'
+	passwd=`cat /homed/config_comm.xml | grep 'mt_db_pwd' | awk -F '[<>]' '{print $3}'`
+	mysql_ip_info=`cat /homed/allips.sh | grep "_mysql_ips=" | awk -F '[=_ ]' '{print $2,$5}' | tr -d '"'`
+	
+	#homed_iusm,homed_dtvs,homed_icore 这三个库会单独部署在不同的数据库主机上
+	specific_dbs="homed_iusm homed_dtvs homed_icore"
+
+	#下列这些库都位于在同一台数据库主机上
+	general_dbs="homed_cmd homed_hive homed_iacs homed_iclnd homed_iepgs homed_ilog homed_imsgs homed_invs homed_ipmux homed_ipwed homed_isas homed_itimers homed_iuds homed_iwds homed_mosaicbms homed_tsg"
+	specific_dbs_ip=`echo "$mysql_ip_info" | grep -E 'iusm|dtvs|icore'`
+	general_dbs_ip=`echo "$mysql_ip_info" | grep -E 'iuds'|awk '{print $2}'`
+	
+	echo ""
+        echo "-- Starting dump all the database table structure to $default_path --"
+        echo ""
+        echo "The database list is:"
+        echo "homed_iusm homed_dtvs homed_icore homed_cmd homed_hive homed_iacs homed_iclnd homed_iepgs homed_ilog"
+        echo "homed_imsgs homed_invs homed_ipmux homed_ipwed homed_isas homed_itimers homed_iuds homed_iwds homed_mosaicbms homed_tsg"
+        echo "" 
+        echo "$specific_dbs_ip" | while read line
+        do
+                db_name=homed_`echo "$line" | awk '{print $1}'`
+                db_ip=`echo "$line" | awk '{print $2}'`
+                mysqldump -d -u$user -p$passwd -h$db_ip $db_name >$default_path/${db_name}_structure.sql 2>/dev/null
+		[[ $? -ne 0 ]] && echo "Dump $db_name failed,db_ip is $db_ip"
+        done
+	
+        for db in $general_dbs
+        do
+                mysqldump -d -u$user -p$passwd -h$general_dbs_ip $db >$default_path/${db}_structure.sql 2>/dev/null
+		[[ $? -ne 0 ]] && echo "Dump $db failed,db_ip is $general_dbs_ip"
+        done
+        echo "---------- Complete ---------"
+}
+function dump_single_structure(){
+        dbs_ip=$1
+        dbs=$2
+	user='root'
+	passwd=`cat /homed/config_comm.xml | grep 'mt_db_pwd' | awk -F '[<>]' '{print $3}'`
+	default_path="/usr/local/soft/mysql_structure"
+	[[ ! -d "$default_path" ]] && mkdir -p $default_path >/dev/null
+        echo "-- Starting dump the database of $dbs table structure to $default_path --"
+        echo ""
+        echo "-- Database name is $dbs --"
+        mysqldump -d -u$user -p$passwd -h$dbs_ip $dbs >$default_path/${dbs}_structure.sql 2>/dev/null
+	[[ $? -ne 0 ]] && echo "Dump $dbs failed,db_ip is $dbs_ip"
+        echo "-- Complete --"
+}
+#dump 数据库表结构用于对比监测
+function dump_mysql_structure(){
+	read -p "Please input database name (default 'all'):" db_name
+	if [[ "$db_name" =~ [a|A][l|L]{2} || -z "$db_name" ]];then
+		dump_mysql
+	else
+		read -p "Please input database ip:" db_ip
+		if [ -z "$db_name" -o -z "$db_ip" ];then
+			echo "Please input database's name and database's ip"
+			exit
+		else
+			dump_single_structure "$db_ip" "$db_name"
+		fi
+	fi
+}
+#-----------------------------------------------------------------------------------
+#对比表结构函数
+function compare_table_structure(){
+	echo ""
+	read -p "Please Input The Direcotory Of The Standard Structure:" dir_standard
+	echo ""
+	read -p "Please Input The Direcotory Of The Business Structure:" dir_business
+	echo ""
+	company_structure_path=$dir_standard
+	business_structure_path=$dir_business
+	
+	if [ -z "$dir_standard" -o -z "$dir_business" ];then
+		echo " [ Please Input Direcotory Name ] "
+		echo ""
+		exit
+	elif [ ! -d "$dir_standard" -o ! -d "$dir_business" ]; then
+		echo "[ $dir_standard or $dir_business is not a directory ]"
+		echo ""
+		exit
+	else
+		file_num=`ls -l $company_structure_path | awk '{print $NF}' | grep '^homed' | wc -l`
+		[[ "$file_num" -lt 1 ]] && exit
+		read -n1 -p "You Want To Compare ALL Database or Some Database (A/S)?:" compare_tag
+		echo ""
+		if [[ "$compare_tag" =~ a|A ]];then
+			file_list=`ls -l $company_structure_path | awk '{print $NF}' | grep '^homed'`
+			echo ""
+		elif [[ "$compare_tag" =~ s|S ]]; then
+			read -p "Please Input The Database Name of You Want To Compare (eg:homed_tsg homed_iuds):" comp_db_name
+			#对输入的数据库，获取出相应的数据库结构文件
+			for comp_name in $comp_db_name
+			do
+				if [[ "$comp_name" =~ homed_.* ]];then
+        				comp_db_list=`ls -l $company_structure_path | awk '{print $NF}' | grep '^homed' | grep "$comp_name"`
+        				tmp_db_list_a=`echo "$comp_db_list "`
+        				tmp_db_list_b+=$tmp_db_list_a
+        			else
+					echo ""
+        				echo " [ The Database Format must be 'homed_XXX' ] "
+					echo ""
+					exit
+				fi
+			done
+			#获取出最后对比的数据库文件列表
+			file_list=`echo "$tmp_db_list_b" | sed 's/ /\n/g'`		
+		else
+			echo "[ Please Input A or S ] "
+			echo ""
+			exit
+		fi
+
+	fi
+	
+	now_time=`date +%Y%m%d.%H.%M`
+	
+	#compare_report 存放的是只有存储引擎不同的日志
+	compare_report="/tmp/compare_table_report_${now_time}.txt"
+	#table_structure_report 是处理后的最终报告
+	table_structure_report="/usr/local/src/table_structure_report_${now_time}.txt"
+	#对差异表进行逐行对比,日志存放于line_report
+	line_report="/tmp/line_report.txt"
+	echo "" >$line_report
+	echo ""
+	echo "------- Starting Compare table's structure,Please waiting -------"
+	echo ""
+        echo "** Left Is The Standard Table Structure | Right Is Business's Table Structure **"
+	echo ""
+	cd /usr/local/src; rm -f table_structure_report_*.txt
+	echo "$file_list" | while read line
+	do
+		db_name=${line%_*}
+		b_db_name=`ls -l $business_structure_path | awk '{print $NF}' | grep "$db_name"`
+		if [ -z "$b_db_name" ];then
+			echo "-- $business_structure_path does not exsit $line --"
+			exit
+		fi
+		if [ "$db_name" == "homed_tsg" ];then
+			table_list=`cat $company_structure_path/$line | sed '/tsg_total/,$d' | grep '^CREATE TABLE' | awk '{print $3}' | tr -d '\`'`
+		else
+			table_list=`cat $company_structure_path/$line | grep '^CREATE TABLE' | awk '{print $3}' | tr -d '\`'`
+		fi
+		for table in $table_list
+		do
+			echo "" >/tmp/c_compare.log
+			echo "" >/tmp/b_compare.log
+			company_table=`cat $company_structure_path/$line | tr -d '\`' | sed -n "/^CREATE TABLE \<$table\> /,/) ENGINE/p" | sed 's/^[ \t]*//g' | awk -F'COMMENT' '{print $1}'| sed 's/\(.*\) AUTO_INCREMENT.*\(DEFAULT.*\)/\1 \2/g' | sed 's/[ \t]*$//g' | tr -d ',;\`' >/tmp/c_compare.log`
+			business_table=`cat $business_structure_path/$line | tr -d '\`' | sed -n "/^CREATE TABLE \<$table\> /,/) ENGINE/p" |sed 's/^[ \t]*//g' | awk -F'COMMENT' '{print $1}'| sed 's/\(.*\) AUTO_INCREMENT.*\(DEFAULT.*\)/\1 \2/g' |sed 's/[ \t]*$//g' | tr -d ',;\`' >/tmp/b_compare.log`
+			b_table=`cat $business_structure_path/$line | tr -d '\`' |sed -n "/^CREATE TABLE \<$table\> /,/) ENGINE/p" |sed 's/^[ \t]*//g' | awk -F'COMMENT' '{print $1}'| sed 's/\(.*\) AUTO_INCREMENT.*\(DEFAULT.*\)/\1 \2/g' |sed 's/[ \t]*$//g' | tr -d ',;\`'`
+			if [ -z "$b_table" ];then
+				echo "[ERROR] [ Business] The table [ $table ] does not exsit in [ $db_name ]" >> $compare_report
+			else
+				result=`diff -y /tmp/c_compare.log /tmp/b_compare.log | grep -E '\||>|<'`
+                                if [ ! -z "$result" ];then
+                                        echo "" >> $compare_report
+					echo "$result" > /tmp/compare_table.tmp
+					num=`cat /tmp/compare_table.tmp | wc -l`
+					engine_tag=`cat /tmp/compare_table.tmp | grep 'ENGINE='`
+					if [ "$num" -eq 1 -a ! -z "$engine_tag" ];then
+						echo "[$db_name $table] $result" | sed 's/[|<>]/|/g' >> $compare_report
+					else
+						cat /tmp/c_compare.log | while read line
+						do
+							echo "" >/tmp/c_line
+							echo "" >/tmp/b_line
+							c_line=`echo "$line" >/tmp/c_line`
+							tag=`echo "$line" | awk '{print $1}'`
+        						[[ "$tag" =~ PRIMARY|KEY|\)|CONSTRAINT ]] && tag=`echo "$line" |awk '{print $1,$2}'`
+							b_line=`cat /tmp/b_compare.log| grep "^$tag\>"`
+							echo "$b_line" >/tmp/b_line
+							if [ ! -z "$b_line" ];then
+								result_line=`diff -y /tmp/c_line /tmp/b_line | grep -E '\||>|<'`
+								col_1=`echo "$result_line" | awk -F '[|<>]' '{print $1}' | sed -e 's/[ \t]*$//g;s/^[ \t]*//g'`
+								col_2=`echo "$result_line" | awk -F '[|<>]' '{print $2}' | sed -e 's/[ \t]*$//g;s/^[ \t]*//g'`
+								[[ -n "$result_line" ]] && echo "[$db_name $table] $col_1 | $col_2 "  >> $line_report
+							else
+								echo "[ERROR] [Business] [$db_name $table] does not exist [ $line ]" >> $line_report
+							fi
+						done
+					fi
+                                fi
+			fi
+		done
+	done
+	error_list=`cat $compare_report | grep 'ERROR.*does not exsit'`
+	error_list_line=`cat $line_report |grep 'ERROR' | grep -v 'ENGINE='`
+	diff_list=`cat $line_report | grep -vE 'ERROR|ENGINE=|^$'`
+	ENGINE_diff_list=`cat $compare_report | grep 'ENGINE='`
+	ENGINE_diff_list_line=`cat $line_report | grep -v 'ERROR' | grep 'ENGINE='`
+	echo "===================== The Differences Fields List ====================" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "$diff_list" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "================== Does Not Exsit Table or Fields  List ==============" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "$error_list_line" | tee -a $table_structure_report
+	echo "$error_list" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "================== The Storage Engine Differences List ===============" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "$ENGINE_diff_list_line" | tee -a $table_structure_report
+	echo "$ENGINE_diff_list" | tee -a $table_structure_report
+	echo "" | tee -a $table_structure_report
+	echo "------ The Detailed Report Locate in $table_structure_report ---------"
+	echo "" 
+	echo "================================= END ================================" | tee -a $table_structure_report
+	
+	cd /tmp;rm -f $compare_report $line_report b_line c_line compare_table.tmp c_compare.log b_compare.log
+	
+}
+#-----------------------------------------------------------------------------------
 #Menu
 function menu(){
 echo "###################################################"
@@ -413,10 +627,13 @@ echo "#   7: Put or Get files from FTP                  #"
 echo "#   8: Keepalive LVS configure                    #"
 echo "#   9: Stop or Start write file to disk           #"
 echo "#  10: Install DHCP FTP NFS                       #"
-echo "#  11: Exit                                       #"
+echo "#  11: Install Single Homed                       #"
+echo "#  12: Dump database tables structure             #"
+echo "#  13: Compare database tables structure          #"
+echo "#  14: Exit                                       #"
 echo "###################################################"
-PS3="Please Choise One Number:"
-select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Update zabbix scripts" "Synchronous Files" "FTP" "Keepalive LVS" "Crontral Disk Write Monitor" "Install some server" "Exit"
+PS3="Please Choose One Number:"
+select input in "Install Some soft" "Install Zabbix Server" "Install Zabbix Agent" "Contral Zabbix Agent" "Update zabbix scripts" "Synchronous Files" "FTP" "Keepalive LVS" "Crontral Disk Write Monitor" "Install some server" "Single_Homed" "Dump table structure" "Compare table structure" "Exit"
 do
 case $input in
 	"Install Some soft")
@@ -448,6 +665,15 @@ case $input in
 		;;
 	"Install some server")
 		install_dhcp_ftp_nfs
+		;;
+	"Single_Homed")
+		install_single_homed
+		;;
+	"Dump table structure")
+		dump_mysql_structure
+		;;
+	"Compare table structure")
+		compare_table_structure
 		;;
 	"Exit")
 		exit
