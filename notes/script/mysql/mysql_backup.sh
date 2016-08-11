@@ -7,7 +7,7 @@
 #	by wangdd 2015/9/24
 #
 #
-db_host="192.168.36.130"
+db_host="xxxxx"
 bk_user="zabbix"
 user_pass="zabbixpass"
 date_time=`date +%y-%m-%d`

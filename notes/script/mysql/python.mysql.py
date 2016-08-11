@@ -2,7 +2,7 @@
 #coding:utf-8
 import MySQLdb
 #连接数据库
-db = MySQLdb.connect("192.168.36.130","root","123456","zabbix")
+db = MySQLdb.connect("192.168.xxx.xxx","root","xxx","zabbix")
 #cursor()方法获取操作游标
 cursor = db.cursor()
 #执行sql语句
