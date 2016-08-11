@@ -4,7 +4,7 @@
 #
 #########################################################################
 #!/bin/bash
-path="/homed"
+path="/backup"
 find_start_process=`grep "^_.*" $path/start.sh | awk -F" " '{print $5}' | awk -F"['.]" '{print $2}' | sed '/^$/d' | sort -u`
 #find_process=`grep "^_.*" $path/start.sh | awk -F" " '{print $5}' | awk -F"['.]" '{print $2}' | sed '/^$/d' | sort -u | awk '{printf "%s ",$0}'`
 #---------------------------------------------------------------------------------------------------

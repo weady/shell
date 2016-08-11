@@ -7,14 +7,14 @@
 #eg.1-----------------------------------------------------------
   old_IFS=$IFS
   IFS=:
-  while read user pass uid gid fullname homedir shell
+  while read user pass uid gid fullname shell
   do
   	echo $shell
   done < /etc/passwd
   IFS=$old_IFS
   
 #eg.2------------------------------------------------------------
-  path="/homed/ilogslave"
+  path="/slave"
   echo ${#path}
   
 #eg.3-------------------------------------------------------------

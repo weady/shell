@@ -1,17 +1,16 @@
 #!/bin/bash
 #
 #
-#This script is used to install Homed's development.
 #
 # wangdd 2015/7/15
 #
 ##########################################################################
 #download_soft
-ftp="http://192.168.10.112:30/homedmaintain/soft"
+ftp="xxxxx"
 soft_file="/usr/local/src/soft"
 dec_path="/usr/local/test"
-ftp_user="homedmaintain"
-ftp_passwd="HomedMaintain44"
+ftp_user="xxxxx"
+ftp_passwd="xxxxx"
 root_path=`dirname $0`
 echo $root_path
 if [ -e $soft_file ];then

@@ -5,8 +5,6 @@
 #
 
 #!/bin/bash
-source /homed/allips.sh
-eval list="$"allips
 ips=`echo $list | sed 's/ /\n/g' | sort -u`
 for ip in $ips
 do
