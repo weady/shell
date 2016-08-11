@@ -1,1 +1,0 @@
-operational_tool.sh 脚本主要是运维管理工具，利用该工具通过调用scripts目录下的相应脚本实现自动化
