@@ -14,17 +14,17 @@ NAME="admin"
 PASSWD="zabbix"
  
 #邮箱地址
-EMAIL="wangdd@iPanel.cn"
+EMAIL="xxxx@xxxx.cn"
  
 #需要获取数据的主机IP，主要在定义图片名字时使用
-IPADDR=(192.168.36.100)
+IPADDR=(192.168.xx.xx)
  
 #图片graphid的号
 CPU_ITEMID=(2614)
  
 #zbx地址，根据具体情况而定
-URL="http://192.168.36.130/zabbix/index.php"
-URL2="http://192.168.36.130/zabbix"
+URL="http://192.168.xx.x/zabbix/index.php"
+URL2="http://192.168.x.xx/zabbix"
 #登录保存cookie
 curl -s -c $COOKIE -b $COOKIE  -d "request=&name=${NAME}&password=${PASSWD}&autologin=1&enter=Sign+in" $URL
  
