@@ -83,38 +83,67 @@ awk 'NR==FNR{a[$1]=$1"x"$2"x"$3}NR>FNR{b=substr($4,3);c=$3"x"b"x"$6;if(c==a[$3])
 #两个文件中对应列相加
 awk '{for(i=1;i<=NF;i++)a[i]=$i;getline < "b.txt";for (j=1;j<=NF;j++) printf $j+a[j]" ";printf "\n"}' a.txt
 #eg.6-------------------------------------------------------------
-seq -s '#' 100 | sed -e 's/[0-9]*//g'
-arch=i486
-[[ $arch = i*86 ]] && echo "arch is x86!" 
+	seq -s '#' 100 | sed -e 's/[0-9]*//g'
+	arch=i486
+	[[ $arch = i*86 ]] && echo "arch is x86!" 
 #eg.7-------------------------------------------------------------
-a0="abc"
-j=0
-b=a$j
-echo ${!b}
-eval b="$"a"$j"
-echo $b
+	a0="abc"
+	j=0
+	b=a$j
+	echo ${!b}
+	eval b="$"a"$j"
+	echo $b
 #eg.8-------------------------------------------------------------
-expre="111.12GB"
-[[ $expre =~ GB$ ]] && echo "ok"
+	expre="111.12GB"
+	[[ $expre =~ GB$ ]] && echo "ok"
 #eg.9-------------------------------------------------------------
-for num in `seq 1 2 100`
-do
-        echo -n "$num|"
-done
-echo 
+	for num in `seq 1 2 100`
+	do
+	        echo -n "$num|"
+	done
+	echo 
 #eg.10-------------------------------------------------------------
-a1=11
-a2=12
-a3=$[$a1+$a2]
-a4=`expr $a1 + $a2`
-echo $a4
-echo $a3
+	a1=11
+	a2=12
+	a3=$[$a1+$a2]
+	a4=`expr $a1 + $a2`
+	echo $a4
+	echo $a3
 #eg.11-------------------------------------------------------------
-testfile="/data1/wangdong/shell/a.txt"
-[[ -s "$testfile" ]] && echo "size gt zero" || echo "empty"
-#eg.11-------------------------------------------------------------
-#利用${file//}截取字段
-line='/dev/sdb1: LABEL="/d2" UUID="ad354338-2059-4c73-a11a-39a5949aeedc" TYPE="ext4"'
-type_=${line/*TYPE=\"/}
-type_=${type_/\"*/}
-echo $type_
+	testfile="/data1/wangdong/shell/a.txt"
+	[[ -s "$testfile" ]] && echo "size gt zero" || echo "empty"
+#eg.12-------------------------------------------------------------
+	#利用${file//}截取字段
+	line='/dev/sdb1: LABEL="/d2" UUID="ad354338-2059-4c73-a11a-39a5949aeedc" TYPE="ext4"'
+	type_=${line/*TYPE=\"/}
+	type_=${type_/\"*/}
+	echo $type_
+#eg.13-------------------------------------------------------------
+#linux记录所有用户操作命令方法,编辑/etc/profile文件
+	#history
+	export HISTTIMEFORMAT="[%Y%m%d-%H%M-:%S]"
+	USER_IP=`who -u am i 2>/dev/null| awk '{print$NF}'|sed -e 's/[()]//g'`
+	HISTDIR=/var/log/.hist
+	if [ -z $USER_IP ]
+	then
+	 USER_IP=`hostname`
+	fi
+	if [ ! -d $HISTDIR ]
+	then
+	   mkdir -p $HISTDIR
+	   chmod 777 $HISTDIR
+	fi
+	if [ ! -d $HISTDIR/${LOGNAME} ]
+	then
+	    mkdir -p $HISTDIR/${LOGNAME}
+	    chmod 300 $HISTDIR/${LOGNAME}
+	fi
+	export HISTSIZE=8192
+	DT=`date +%Y%m%d_%H%M%S`
+	export HISTFILE="$HISTDIR/${LOGNAME}/${USER_IP}.hist.$DT"
+	chmod 600 $HISTDIR/${LOGNAME}/*.hist* 2>/dev/null
+	if [[ "$PROMPT_COMMAND" == "" ]]; then
+	    export PROMPT_COMMAND="history -w"
+	else
+	    export PROMPT_COMMAND="$PROMPT_COMMAND;history -w"
+	fi
