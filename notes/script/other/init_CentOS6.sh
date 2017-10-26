@@ -2,14 +2,15 @@
 #
 #by wangdd 2017/08/17
 #
-#CentOS release 6.4 系统安全和优化脚本,最小化安装
+#初始化 CentOS 6.x or 7.x 系统安全和优化脚本,最小化安装
 #
 
 #----------------------------------------------------------
 #安装必要的服务
 
 function install_base_soft(){
-	yum install -y gcc kernel-devel man ntpdate sysstat tcpdump zlib-devel openssl-devel wget nfs-utils cronolog openssh-clients cmake >/dev/null 2>&1 
+	echo "[Starting Install Base Soft ,Please waiting......]"
+	yum install -y vim rsync lrzsz tree gcc kernel-devel man ntpdate sysstat tcpdump zlib-devel openssl-devel wget nfs-utils cronolog openssh-clients cmake >/dev/null 2>&1 
 	
 	if [[ $? -eq 0 ]];then
 		echo "Yum install basesoft success!"
@@ -21,26 +22,35 @@ function install_base_soft(){
 
 #----------------------------------------------------------
 #防火墙优化
-
 function init_firewall(){
-	iptables -P INPUT ACCEPT
-	iptables -F
-	iptables -X
-	iptables -Z
-	iptables -A INPUT -i lo -j ACCEPT
-	iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-	iptables -A INPUT -p tcp --dport 80 -j ACCEPT
-	iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
-	iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
-	iptables -A INPUT -p icmp -j ACCEPT
-	iptables -P INPUT DROP
-	/etc/init.d/iptables save
-	service iptables restart
-
-	if [[ $? -eq 0 ]];then
-		echo "Firewall initial success!"
+	if [ `uname -r | awk -F'.' '{print $1}'` -eq 3 ];then
+		echo "System kernel is `uname -r` and Stop firewalld"	
+		systemctl stop firewalld.service
+		if [[ $? -eq 0 ]];then
+                        echo "Stop Firewall Success!"
+                else
+                        echo "Stop Firewall Failed!"
+                fi
 	else
-		echo "Firewall initial failed!"
+		iptables -P INPUT ACCEPT
+		iptables -F
+		iptables -X
+		iptables -Z
+		iptables -A INPUT -i lo -j ACCEPT
+		iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+		iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+		iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+		iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+		iptables -A INPUT -p icmp -j ACCEPT
+		iptables -P INPUT DROP
+		/etc/init.d/iptables save
+		service iptables restart
+
+		if [[ $? -eq 0 ]];then
+			echo "Firewall initial success!"
+		else
+			echo "Firewall initial failed!"
+		fi
 	fi
 	
 }
@@ -131,7 +141,7 @@ EOF
 function optimize_system(){
 	echo "[ Start Optimize System ]"
 	setenforce 0
-	sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config 	
+	sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 	
 	echo "HISTSIZE=10">>/etc/profile
 	echo "export TMOUT=3600" >> /etc/profile
 }
@@ -172,4 +182,3 @@ fi
 }
 
 
-record_user_operation

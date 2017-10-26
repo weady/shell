@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+path="/app/elk/filebeat/filebeat-5.6.2"
+
+function start_filebeat(){
+        filebeat_process=$(ps -ef | grep 'filebeat.yml' | grep -v grep)
+        if [ -n "$filebeat_process" ];then
+                echo "Filebeat is Running ..... "
+        else
+                echo " Start Filebeat,Please waiting..."
+                cd $path
+                ./filebeat -e -c $path/filebeat.yml >/dev/null 2>&1 &
+		sleep 5
+                start_result=$(ps -ef | grep 'filebeat.yml'| grep -v grep)
+                if [ "$start_result" ];then
+                        echo "Start Filebeat Success"
+                else
+                        echo "Start Filebeat Failed"
+                fi
+        fi
+}
+
+function stop_filebeat(){
+	filebeat_pid=$(ps -ef | grep 'filebeat.yml' | grep -v 'grep' | awk '{print $2}')
+	if [ -z "$filebeat_pid" ];then
+		echo " Filebeat is Not Running "
+	else
+		echo " Stop Filebeat,Please waiting... "
+		kill -9 $filebeat_pid >/dev/null 2>&1
+		sleep 1
+		stop_result=$(ps -ef | grep 'filebeat.yml' | grep -v 'grep' | awk '{print $2}')
+		if [ -z "$stop_result" ];then
+			echo "Stop Filebeat Success"
+		else
+			echo "Stop Filebeat Failed"
+		fi
+	fi
+}
+
+function status_filebeat(){
+	filebeat_pid=$(ps -ef | grep 'filebeat.yml' | grep -v 'grep' | awk '{print $2}')
+	if [ -z "$filebeat_pid" ];then
+		echo " Filebeat is Not Running "
+	else
+		echo " Filebeat is Running "
+	fi
+}
+
+function restart_filebeat(){
+	stop_filebeat
+	sleep 3
+	start_filebeat
+}
+
+case $1 in
+	start)
+		start_filebeat
+		;;
+	stop)
+		stop_filebeat
+		;;
+	status)
+		status_filebeat
+		;;
+	*)
+	        echo $"service filebeat {start|stop|status|restart}"
+        	exit 2
+esac
