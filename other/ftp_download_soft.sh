@@ -4,6 +4,26 @@
 #
 # wangdd 2015/7/15
 #
+#########################################################################
+function ftp_base(){
+	##put backup_file to ftp
+	ftp_ip="xxxxxxxxxxx"
+	username="xxxxx"
+	passwd="xxxxx"
+	echo "Start put file to ftp at `date +%Y-%m-%d-%T`"
+	echo "------------------------------------------------"
+	ftp -ivn $ftp_ip  <<-EOF 
+	user $username $passwd 
+	binary
+	lcd $2
+	cd soft
+	m$1 $3
+	bye
+	EOF
+	echo "put ftp end at `date +%Y-%m-%d-%T`"
+}
+
+
 ##########################################################################
 #download_soft
 ftp="xxxxx"
@@ -35,5 +55,11 @@ function download_soft()
 		fi
 	done
 }
-download_soft
+
 #########################################################################
+
+function main(){
+	download_soft
+}
+
+main

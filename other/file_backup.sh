@@ -1,14 +1,5 @@
 #!/bin/bash
-#purpose: This script is used to backup system file to local and package it then invoke python client script to upload file backuped to
-#         ftp server (net disk)
-#auth:  NetDragon Websoft Inc. ,job number: 146588
-#date: 2014/08/12
-#General Public License
-#Version: 1.0
-#Usage: /bin/bash $0
-#Note: 1.default we will backup three direcory (1)/etc (2)/usr/local (3)/data/wwwroot
-#      2."apptype" must be provieded before performing this script
-#      3.old data will be deleted before 7 day ,calcing from the poit time running script.
+
 
 if [ ! -d /backup ] && [ ! -L /backup ];then
     if [ ! -d /data/backup ];then
@@ -188,3 +179,6 @@ function backup_exit()
 
 #Section 3: invoke main function
 backup_main
+
+#---------------------------------------
+#
